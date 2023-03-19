@@ -1,0 +1,7 @@
+draytek_exporter
+*.exe
+/.build
+/.deps
+/.release
+/.tarballs
+/vendor
