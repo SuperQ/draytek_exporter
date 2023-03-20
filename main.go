@@ -75,7 +75,7 @@ func main() {
 	}
 	level.Info(logger).Log("msg", "Initial Login on DrayTek device successful")
 
-	http.Handle(*metricsPath,promhttp.Handler())
+	http.Handle(*metricsPath, promhttp.Handler())
 	if *metricsPath != "/" && *metricsPath != "" {
 		landingConfig := web.LandingConfig{
 			Name:        "DrayTek Exporter",

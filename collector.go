@@ -32,41 +32,96 @@ func NewExporter(v *vigorv5.Vigor) *Exporter {
 }
 
 var (
-	vigorUpDesc = prometheus.NewDesc(
+	draytekUpDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "up"),
-		"Was the vigor instance status successful?",
+		"Was the draytek instance status successful?",
 		nil, nil,
 	)
-	vigorInfoDesc = prometheus.NewDesc(
+	draytekInfoDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "info"),
-		"Info about the vigor router",
+		"Info about the draytek router",
 		[]string{"dsl_version", "mode", "profile"}, nil,
+	)
+
+	actualRateDownDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "downstream", "actual_bps"),
+		"The actual downstream bits per second rate",
+		nil, nil,
+	)
+	actualRateUpDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "upstream", "actual_bps"),
+		"The actual upstream bits per second rate",
+		nil, nil,
+	)
+	attainableRateDownDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "downstream", "attainable_bps"),
+		"The attainable downstream bits per second rate",
+		nil, nil,
+	)
+	attainableRateUpDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "upstream", "attainable_bps"),
+		"The attainable upstream bits per second rate",
+		nil, nil,
+	)
+	snrMarginDownDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "downstream", "snr_margin_db"),
+		"The downstream SNR margin in dB",
+		nil, nil,
+	)
+	snrMarginUpDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "upstream", "snr_margin_db"),
+		"The downstream SNR margin in dB",
+		nil, nil,
 	)
 )
 
-// Describe describes all the metrics ever exported by the vigor_exporter. It
+// Describe describes all the metrics ever exported by the draytek_exporter. It
 // implements prometheus.Collector.
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
-	ch <- vigorUpDesc
-	ch <- vigorInfoDesc
+	ch <- draytekUpDesc
+	ch <- draytekInfoDesc
+	ch <- actualRateDownDesc
+	ch <- actualRateUpDesc
+	ch <- attainableRateDownDesc
+	ch <- attainableRateUpDesc
+	ch <- snrMarginDownDesc
+	ch <- snrMarginUpDesc
 }
 
-// Collect fetches the stats from the vigor router and delivers them as
+// Collect fetches the stats from the draytek router and delivers them as
 // Prometheus metrics. It implements prometheus.Collector.
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	status, err := e.v.FetchStatus()
 	if err != nil {
 		ch <- prometheus.MustNewConstMetric(
-			vigorUpDesc, prometheus.GaugeValue, 0.0,
+			draytekUpDesc, prometheus.GaugeValue, 0.0,
 		)
 		return
 	}
 	ch <- prometheus.MustNewConstMetric(
-		vigorUpDesc, prometheus.GaugeValue, 1.0,
+		draytekUpDesc, prometheus.GaugeValue, 1.0,
 	)
 
 	ch <- prometheus.MustNewConstMetric(
-		vigorInfoDesc, prometheus.GaugeValue, 1.0,
+		draytekInfoDesc, prometheus.GaugeValue, 1.0,
 		status.DSLVersion, status.Mode, status.Profile,
+	)
+	ch <- prometheus.MustNewConstMetric(
+		actualRateDownDesc, prometheus.GaugeValue, float64(status.ActualRateDownstream),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		actualRateUpDesc, prometheus.GaugeValue, float64(status.ActualRateUpstream),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		attainableRateDownDesc, prometheus.GaugeValue, float64(status.AttainableRateDownstream),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		attainableRateUpDesc, prometheus.GaugeValue, float64(status.AttainableRateUpstream),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		snrMarginDownDesc, prometheus.GaugeValue, status.SNRMarginDownstream,
+	)
+	ch <- prometheus.MustNewConstMetric(
+		snrMarginUpDesc, prometheus.GaugeValue, status.SNRMarginUpstream,
 	)
 }
