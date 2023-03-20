@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/tidwall/gjson"
 	"github.com/go-kit/log/level"
+	"github.com/tidwall/gjson"
 )
 
 var ErrLoginFailed = errors.New("login failed")
