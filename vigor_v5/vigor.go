@@ -30,7 +30,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-var ErrJsonDecodeFailed = errors.New("json decode failed")
+var ErrJSONDecodeFailed = errors.New("json decode failed")
 var ErrRequestFailed = errors.New("failed to request with login")
 
 type Vigor struct {
@@ -85,7 +85,7 @@ func (v *Vigor) postForm(p vigorForm) (*http.Response, error) {
 	urlValues := url.Values{
 		"pid":    {p.pid},
 		"op":     {p.op},
-		"ct":     {encodeVigorJson(p.ct)},
+		"ct":     {encodeVigorJSON(p.ct)},
 		"_token": {v.csrf},
 	}
 
@@ -103,12 +103,12 @@ func (v *Vigor) postWithLogin(p vigorForm) (string, error) {
 	for attempts := 0; attempts < 3; attempts++ {
 		resp, err := v.postForm(p)
 		if err == nil && resp.StatusCode == http.StatusOK {
-			respJson, err := decodeVigorJson(resp)
+			respJSON, err := decodeVigorJSON(resp)
 			if err == nil {
-				rid = gjson.Get(respJson, "rid").String()
+				rid = gjson.Get(respJSON, "rid").String()
 				if rid == "0000" {
 					resp.Body.Close()
-					return respJson, nil
+					return respJSON, nil
 				}
 			}
 		}
@@ -123,18 +123,18 @@ func (v *Vigor) postWithLogin(p vigorForm) (string, error) {
 	return "", ErrRequestFailed
 }
 
-func decodeVigorJson(resp *http.Response) (string, error) {
+func decodeVigorJSON(resp *http.Response) (string, error) {
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", ErrJsonDecodeFailed
+		return "", ErrJSONDecodeFailed
 	}
 	respPadding, err := strconv.Atoi(string(body[0]))
 	if err != nil {
-		return "", ErrJsonDecodeFailed
+		return "", ErrJSONDecodeFailed
 	}
 	if respPadding > 2 {
-		return "", ErrJsonDecodeFailed
+		return "", ErrJSONDecodeFailed
 	}
 	body = body[1:]
 	for i := 0; i < respPadding; i++ {
@@ -143,13 +143,13 @@ func decodeVigorJson(resp *http.Response) (string, error) {
 
 	decoded, err := base64.StdEncoding.DecodeString(string(body))
 	if err != nil {
-		return "", ErrJsonDecodeFailed
+		return "", ErrJSONDecodeFailed
 	}
 
 	return string(decoded), nil
 }
 
-func encodeVigorJson(j string) string {
+func encodeVigorJSON(j string) string {
 	j = base64.StdEncoding.EncodeToString([]byte(j))
 
 	paddingLength := len(j)

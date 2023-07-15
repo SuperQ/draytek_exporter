@@ -57,13 +57,13 @@ func (v *Vigor) FetchStatus() (Status, error) {
 		return Status{}, err
 	}
 
-	return v.parseDSLStatusGeneralJson(resp)
+	return v.parseDSLStatusGeneralJSON(resp)
 }
 
-func (v *Vigor) parseDSLStatusGeneralJson(respJson string) (Status, error) {
-	value := gjson.Get(respJson, "ct.0.0MONITORING_DSL_GENERAL.#(Name==\"Setting\")")
+func (v *Vigor) parseDSLStatusGeneralJSON(respJSON string) (Status, error) {
+	value := gjson.Get(respJSON, "ct.0.0MONITORING_DSL_GENERAL.#(Name==\"Setting\")")
 	if !value.Exists() {
-		level.Debug(v.logger).Log("msg", "Unable to get settings", "response_json", respJson)
+		level.Debug(v.logger).Log("msg", "Unable to get settings", "response_json", respJSON)
 		return Status{}, ErrParseFailed
 	}
 

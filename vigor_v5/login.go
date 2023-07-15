@@ -28,7 +28,7 @@ import (
 var ErrLoginFailed = errors.New("login failed")
 
 const (
-	loginJsonTemplate = `{"param":[],"ct":[{"Name":"%s","Password":"%s","locales":"en"}]}`
+	loginJSONTemplate = `{"param":[],"ct":[{"Name":"%s","Password":"%s","locales":"en"}]}`
 )
 
 func (v *Vigor) Login() error {
@@ -58,13 +58,13 @@ func (v *Vigor) Login() error {
 		return ErrLoginFailed
 	}
 
-	respJson, err := decodeVigorJson(resp)
+	respJSON, err := decodeVigorJSON(resp)
 	if err != nil {
 		level.Debug(v.logger).Log("msg", "Decoding response failed", "err", err)
 		return ErrLoginFailed
 	}
 
-	rid := gjson.Get(respJson, "rid").String()
+	rid := gjson.Get(respJSON, "rid").String()
 	if rid != "0000" {
 		level.Debug(v.logger).Log("msg", "Got invalid response ID", "rid", rid)
 		return ErrLoginFailed
@@ -89,5 +89,5 @@ func encodeLogin(username string, password string) string {
 	h.Write([]byte(password))
 	encodedPassword := hex.EncodeToString(h.Sum(nil))
 
-	return fmt.Sprintf(loginJsonTemplate, username, encodedPassword)
+	return fmt.Sprintf(loginJSONTemplate, username, encodedPassword)
 }

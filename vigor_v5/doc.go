@@ -29,7 +29,7 @@
 //
 // ## Prefix padding base64 encoding.
 //
-// The base64 encoding sent and recived from the firmware does not use the
+// The base64 encoding sent and received from the firmware does not use the
 // standard trailing `=` padding. Instead, it places a number at the beginning
 // to denote how much encoding padding is needed.
 //

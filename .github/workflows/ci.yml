@@ -15,7 +15,7 @@ jobs:
       image: quay.io/prometheus/golang-builder:1.20-base
     steps:
       - uses: actions/checkout@v3
-      - uses: prometheus/promci@v0.0.2
+      - uses: prometheus/promci@v0.1.0
       - uses: ./.github/promci/actions/setup_environment
       - run: make
 
@@ -40,13 +40,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: 1.20.x
       - name: Lint
-        uses: golangci/golangci-lint-action@v3.4.0
+        uses: golangci/golangci-lint-action@v3.6.0
         with:
-          version: v1.51.2
+          version: v1.53.3
 
   publish_main:
     name: Publish main branch artifacts
@@ -55,7 +55,7 @@ jobs:
     if: github.event_name == 'push' && github.event.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v3
-      - uses: prometheus/promci@v0.0.2
+      - uses: prometheus/promci@v0.1.0
       - uses: ./.github/promci/actions/publish_main
         with:
           docker_hub_organization: superque
@@ -74,7 +74,7 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v3
-      - uses: prometheus/promci@v0.0.2
+      - uses: prometheus/promci@v0.1.0
       - uses: ./.github/promci/actions/publish_release
         with:
           docker_hub_organization: superque
