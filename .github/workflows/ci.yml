@@ -12,10 +12,10 @@ jobs:
     # Whenever the Go version is updated here, .promu.yml
     # should also be updated.
     container:
-      image: quay.io/prometheus/golang-builder:1.20-base
+      image: quay.io/prometheus/golang-builder:1.22-base
     steps:
-      - uses: actions/checkout@v3
-      - uses: prometheus/promci@v0.1.0
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: prometheus/promci@3cb0c3871f223bd5ce1226995bd52ffb314798b6 # v0.1.0
       - uses: ./.github/promci/actions/setup_environment
       - run: make
 
@@ -26,8 +26,8 @@ jobs:
       matrix:
         thread: [ 0, 1, 2 ]
     steps:
-      - uses: actions/checkout@v3
-      - uses: prometheus/promci@v0.0.2
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: prometheus/promci@3cb0c3871f223bd5ce1226995bd52ffb314798b6 # v0.1.0
       - uses: ./.github/promci/actions/build
         with:
           parallelism: 3
@@ -38,15 +38,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Install Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version: 1.20.x
+          go-version: 1.22.x
       - name: Lint
-        uses: golangci/golangci-lint-action@v3.6.0
+        uses: golangci/golangci-lint-action@a4f60bb28d35aeee14e6880718e0c85ff1882e64 # v6.0.1
         with:
-          version: v1.53.3
+          version: v1.59.0
 
   publish_main:
     name: Publish main branch artifacts
@@ -54,8 +54,8 @@ jobs:
     needs: [test, build]
     if: github.event_name == 'push' && github.event.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v3
-      - uses: prometheus/promci@v0.1.0
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: prometheus/promci@3cb0c3871f223bd5ce1226995bd52ffb314798b6 # v0.1.0
       - uses: ./.github/promci/actions/publish_main
         with:
           docker_hub_organization: superque
@@ -73,8 +73,8 @@ jobs:
     needs: [test, build]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v3
-      - uses: prometheus/promci@v0.1.0
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: prometheus/promci@3cb0c3871f223bd5ce1226995bd52ffb314798b6 # v0.1.0
       - uses: ./.github/promci/actions/publish_release
         with:
           docker_hub_organization: superque

@@ -3,15 +3,6 @@ linters:
   enable:
     - misspell
     - revive
-  disable:
-    # Disable soon to deprecated[1] linters that lead to false
-    # positives when build tags disable certain files[2]
-    # 1: https://github.com/golangci/golangci-lint/issues/1841
-    # 2: https://github.com/prometheus/node_exporter/issues/1545
-    - deadcode
-    - unused
-    - structcheck
-    - varcheck
 
 linters-settings:
   errcheck:
@@ -20,3 +11,7 @@ linters-settings:
       - (net/http.ResponseWriter).Write
       # Never check for logger errors.
       - (github.com/go-kit/log.Logger).Log
+  revive:
+    rules:
+      - name: unused-parameter
+        disabled: true
