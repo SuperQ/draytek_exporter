@@ -19,14 +19,13 @@ import (
 	_ "net/http/pprof"
 	"os"
 
-	"github.com/SuperQ/draytek_exporter/vigor_v5"
+	vigorv5 "github.com/SuperQ/draytek_exporter/vigor_v5"
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	versioncollector "github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/promlog"
-	"github.com/prometheus/common/promlog/flag"
+	"github.com/prometheus/common/promslog"
+	"github.com/prometheus/common/promslog/flag"
 	"github.com/prometheus/common/version"
 	"github.com/prometheus/exporter-toolkit/web"
 	"github.com/prometheus/exporter-toolkit/web/kingpinflag"
@@ -47,34 +46,34 @@ func main() {
 		passwordEnv = kingpin.Flag("password-env", "Env var that contains password to authenticate to the target").Default("DRAYTEK_PASSWORD").String()
 		target      = kingpin.Flag("target", "target host/ip the router/modem is reachable on").Default("192.168.1.1").String()
 	)
-	promlogConfig := &promlog.Config{}
-	flag.AddFlags(kingpin.CommandLine, promlogConfig)
+	promslogConfig := &promslog.Config{}
+	flag.AddFlags(kingpin.CommandLine, promslogConfig)
 	kingpin.Version(version.Print("mysqld_exporter"))
 	kingpin.Parse()
-	logger := promlog.New(promlogConfig)
+	logger := promslog.New(promslogConfig)
 
-	level.Info(logger).Log("msg", "Starting "+exporterName, "version", version.Info())
-	level.Info(logger).Log("msg", "Build context", "build_context", version.BuildContext())
+	logger.Info("Starting "+exporterName, "version", version.Info())
+	logger.Info("Build context", "build_context", version.BuildContext())
 
 	password := os.Getenv(*passwordEnv)
 	if password == "" {
-		level.Error(logger).Log("msg", "Missing password from env", "env", *passwordEnv)
+		logger.Error("Missing password from env", "env", *passwordEnv)
 		os.Exit(1)
 	}
 
 	var err error
 	v, err := vigorv5.New(logger, *target, *username, password)
 	if err != nil {
-		level.Error(logger).Log("msg", "Unable to create target", "err", err)
+		logger.Error("Unable to create target", "err", err)
 		os.Exit(1)
 	}
 
 	err = v.Login()
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed initial login attempt", "err", err)
+		logger.Error("Failed initial login attempt", "err", err)
 		os.Exit(1)
 	}
-	level.Info(logger).Log("msg", "Initial Login on DrayTek device successful")
+	logger.Info("Initial Login on DrayTek device successful")
 
 	http.Handle(*metricsPath, promhttp.Handler())
 	if *metricsPath != "/" && *metricsPath != "" {
@@ -91,7 +90,7 @@ func main() {
 		}
 		landingPage, err := web.NewLandingPage(landingConfig)
 		if err != nil {
-			level.Error(logger).Log("err", err)
+			logger.Error(err.Error())
 			os.Exit(1)
 		}
 		http.Handle("/", landingPage)
@@ -101,7 +100,7 @@ func main() {
 
 	srv := &http.Server{}
 	if err := web.ListenAndServe(srv, toolkitFlags, logger); err != nil {
-		level.Error(logger).Log("msg", "Error starting HTTP server", "err", err)
+		logger.Error("Error starting HTTP server", "err", err)
 		os.Exit(1)
 	}
 }
