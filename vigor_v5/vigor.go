@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -25,8 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/tidwall/gjson"
 )
 
@@ -43,7 +42,7 @@ type Vigor struct {
 	username string
 	password string
 
-	logger log.Logger
+	logger *slog.Logger
 }
 
 type vigorForm struct {
@@ -52,7 +51,7 @@ type vigorForm struct {
 	ct  string
 }
 
-func New(logger log.Logger, host string, username string, password string) (*Vigor, error) {
+func New(logger *slog.Logger, host string, username string, password string) (*Vigor, error) {
 	var err error
 
 	v := Vigor{
@@ -89,10 +88,10 @@ func (v *Vigor) postForm(p vigorForm) (*http.Response, error) {
 		"_token": {v.csrf},
 	}
 
-	level.Debug(v.logger).Log("msg", "Posting pid", "pid", p.pid)
+	v.logger.Debug("Posting pid", "pid", p.pid)
 
 	for _, cookie := range v.client.Jar.Cookies(v.cgiURL) {
-		level.Debug(v.logger).Log("msg", "Post Cookie", "name", cookie.Name, "value", cookie.Value)
+		v.logger.Debug("Post Cookie", "name", cookie.Name, "value", cookie.Value)
 	}
 
 	return v.client.PostForm(v.cgiURL.String(), urlValues)
@@ -113,10 +112,10 @@ func (v *Vigor) postWithLogin(p vigorForm) (string, error) {
 			}
 		}
 		defer resp.Body.Close()
-		level.Debug(v.logger).Log("msg", "Post failed, attempting login", "status", resp.Status, "err", err, "rid", rid)
+		v.logger.Debug("Post failed, attempting login", "status", resp.Status, "err", err, "rid", rid)
 		err = v.Login()
 		if err != nil {
-			level.Debug(v.logger).Log("msg", "Login failed", "err", err)
+			v.logger.Debug("Login failed", "err", err)
 		}
 		time.Sleep(time.Duration(attempts) * time.Second)
 	}

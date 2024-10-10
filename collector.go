@@ -14,7 +14,7 @@
 package main
 
 import (
-	"github.com/SuperQ/draytek_exporter/vigor_v5"
+	vigorv5 "github.com/SuperQ/draytek_exporter/vigor_v5"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

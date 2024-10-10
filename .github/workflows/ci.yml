@@ -12,10 +12,10 @@ jobs:
     # Whenever the Go version is updated here, .promu.yml
     # should also be updated.
     container:
-      image: quay.io/prometheus/golang-builder:1.22-base
+      image: quay.io/prometheus/golang-builder:1.23-base
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-      - uses: prometheus/promci@3cb0c3871f223bd5ce1226995bd52ffb314798b6 # v0.1.0
+      - uses: prometheus/promci@468927c440349ab56c4a1aafd453b312841503c2 # v0.4.4
       - uses: ./.github/promci/actions/setup_environment
       - run: make
 
@@ -27,7 +27,7 @@ jobs:
         thread: [ 0, 1, 2 ]
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-      - uses: prometheus/promci@3cb0c3871f223bd5ce1226995bd52ffb314798b6 # v0.1.0
+      - uses: prometheus/promci@468927c440349ab56c4a1aafd453b312841503c2 # v0.4.4
       - uses: ./.github/promci/actions/build
         with:
           parallelism: 3
@@ -42,11 +42,11 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version: 1.22.x
+          go-version: 1.23.x
       - name: Lint
         uses: golangci/golangci-lint-action@a4f60bb28d35aeee14e6880718e0c85ff1882e64 # v6.0.1
         with:
-          version: v1.59.0
+          version: v1.60.2
 
   publish_main:
     name: Publish main branch artifacts
@@ -55,7 +55,7 @@ jobs:
     if: github.event_name == 'push' && github.event.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-      - uses: prometheus/promci@3cb0c3871f223bd5ce1226995bd52ffb314798b6 # v0.1.0
+      - uses: prometheus/promci@468927c440349ab56c4a1aafd453b312841503c2 # v0.4.4
       - uses: ./.github/promci/actions/publish_main
         with:
           docker_hub_organization: superque
@@ -74,7 +74,7 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-      - uses: prometheus/promci@3cb0c3871f223bd5ce1226995bd52ffb314798b6 # v0.1.0
+      - uses: prometheus/promci@468927c440349ab56c4a1aafd453b312841503c2 # v0.4.4
       - uses: ./.github/promci/actions/publish_release
         with:
           docker_hub_organization: superque

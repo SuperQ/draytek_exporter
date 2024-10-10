@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/go-kit/log/level"
 	"github.com/tidwall/gjson"
 )
 
@@ -36,12 +35,12 @@ func (v *Vigor) Login() error {
 	token := make([]byte, 16)
 	_, err := rand.Read(token)
 	if err != nil {
-		level.Error(v.logger).Log("msg", "Unable to generate new CSRF token", "err", err)
+		v.logger.Error("Unable to generate new CSRF token", "err", err)
 		return err
 	}
 	v.csrf = hex.EncodeToString(token)
 
-	level.Debug(v.logger).Log("msg", "Attempting login", "username", v.username)
+	v.logger.Debug("Attempting login", "username", v.username)
 	post := vigorForm{
 		pid: "event",
 		op:  "552",
@@ -54,19 +53,19 @@ func (v *Vigor) Login() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		level.Debug(v.logger).Log("msg", "Server returned non-ok http status", "status", resp.Status)
+		v.logger.Debug("Server returned non-ok http status", "status", resp.Status)
 		return ErrLoginFailed
 	}
 
 	respJSON, err := decodeVigorJSON(resp)
 	if err != nil {
-		level.Debug(v.logger).Log("msg", "Decoding response failed", "err", err)
+		v.logger.Debug("Decoding response failed", "err", err)
 		return ErrLoginFailed
 	}
 
 	rid := gjson.Get(respJSON, "rid").String()
 	if rid != "0000" {
-		level.Debug(v.logger).Log("msg", "Got invalid response ID", "rid", rid)
+		v.logger.Debug("Got invalid response ID", "rid", rid)
 		return ErrLoginFailed
 	}
 
@@ -76,10 +75,10 @@ func (v *Vigor) Login() error {
 	}
 
 	for _, cookie := range v.jar.Cookies(v.cgiURL) {
-		level.Debug(v.logger).Log("msg", "Got Cookie", "name", cookie.Name, "value", cookie.Value)
+		v.logger.Debug("Got Cookie", "name", cookie.Name, "value", cookie.Value)
 	}
 
-	level.Debug(v.logger).Log("msg", "Login OK")
+	v.logger.Debug("Login OK")
 
 	return nil
 }

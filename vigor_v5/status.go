@@ -18,7 +18,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-kit/log/level"
 	"github.com/tidwall/gjson"
 )
 
@@ -53,7 +52,7 @@ func (v *Vigor) FetchStatus() (Status, error) {
 
 	resp, err := v.postWithLogin(post)
 	if err != nil {
-		level.Debug(v.logger).Log("msg", "Got error from post", "err", err)
+		v.logger.Debug("Got error from post", "err", err)
 		return Status{}, err
 	}
 
@@ -63,11 +62,11 @@ func (v *Vigor) FetchStatus() (Status, error) {
 func (v *Vigor) parseDSLStatusGeneralJSON(respJSON string) (Status, error) {
 	value := gjson.Get(respJSON, "ct.0.0MONITORING_DSL_GENERAL.#(Name==\"Setting\")")
 	if !value.Exists() {
-		level.Debug(v.logger).Log("msg", "Unable to get settings", "response_json", respJSON)
+		v.logger.Debug("Unable to get settings", "response_json", respJSON)
 		return Status{}, ErrParseFailed
 	}
 
-	level.Debug(v.logger).Log("msg", "Parsed DSL Status General json", "json", value.String())
+	v.logger.Debug("Parsed DSL Status General json", "json", value.String())
 
 	status := Status{
 		Status:     value.Get("Status").String(),
