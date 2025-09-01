@@ -14,7 +14,7 @@ jobs:
     container:
       image: quay.io/prometheus/golang-builder:1.23-base
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - uses: prometheus/promci@c3c93a50d581b928af720f0134b2b2dad32a6c41 # v0.4.6
       - uses: ./.github/promci/actions/setup_environment
       - run: make
@@ -26,7 +26,7 @@ jobs:
       matrix:
         thread: [ 0, 1, 2 ]
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - uses: prometheus/promci@c3c93a50d581b928af720f0134b2b2dad32a6c41 # v0.4.6
       - uses: ./.github/promci/actions/build
         with:
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Install Go
         uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
         with:
@@ -54,7 +54,7 @@ jobs:
     needs: [test, build]
     if: github.event_name == 'push' && github.event.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - uses: prometheus/promci@c3c93a50d581b928af720f0134b2b2dad32a6c41 # v0.4.6
       - uses: ./.github/promci/actions/publish_main
         with:
@@ -73,7 +73,7 @@ jobs:
     needs: [test, build]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - uses: prometheus/promci@c3c93a50d581b928af720f0134b2b2dad32a6c41 # v0.4.6
       - uses: ./.github/promci/actions/publish_release
         with:
