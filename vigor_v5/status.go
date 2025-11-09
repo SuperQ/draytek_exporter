@@ -28,6 +28,16 @@ const (
 	dslStatusGeneral = `{"param":[],"ct":[{"0MONITORING_DSL_GENERAL":[]},{"1MON_DSL_STREAM_TABLE":[]},{"1MON_DSL_END_TABLE":[]}]}`
 )
 
+type StreamTableValue[T any] struct {
+	Downstream T
+	Upstream   T
+}
+
+type EndTableValue[T any] struct {
+	NearEnd T
+	FarEnd  T
+}
+
 type Status struct {
 	Status     string
 	Mode       string
@@ -35,12 +45,25 @@ type Status struct {
 	Annex      string
 	DSLVersion string
 
-	ActualRateDownstream     int
-	ActualRateUpstream       int
-	AttainableRateDownstream int
-	AttainableRateUpstream   int
-	SNRMarginDownstream      float64
-	SNRMarginUpstream        float64
+	ActualRate      StreamTableValue[int]
+	AttainableRate  StreamTableValue[int]
+	InterleaveDepth StreamTableValue[int]
+	ActualPSD       StreamTableValue[float64]
+	SNRMargin       StreamTableValue[float64]
+
+	Bitswap     EndTableValue[bool]
+	ReTx        EndTableValue[bool]
+	Attenuation EndTableValue[float64]
+	Crc         EndTableValue[int]
+	Es          EndTableValue[int]
+	Ses         EndTableValue[int]
+	Uas         EndTableValue[int]
+	HecError    EndTableValue[int]
+	LosFailure  EndTableValue[int]
+	LofFailure  EndTableValue[int]
+	LprFailure  EndTableValue[int]
+	LcdFailure  EndTableValue[int]
+	Rfec        EndTableValue[int]
 }
 
 func (v *Vigor) FetchStatus() (Status, error) {
@@ -57,6 +80,16 @@ func (v *Vigor) FetchStatus() (Status, error) {
 	}
 
 	return v.parseDSLStatusGeneralJSON(resp)
+}
+
+func parseStreamTableValue[T any](value *StreamTableValue[T], json gjson.Result, parser func(string) T) {
+	value.Downstream = parser(json.Get("Downstream").String())
+	value.Upstream = parser(json.Get("Upstream").String())
+}
+
+func parseEndTableValue[T any](value *EndTableValue[T], json gjson.Result, parser func(string) T) {
+	value.NearEnd = parser(json.Get("Near_End").String())
+	value.FarEnd = parser(json.Get("Far_End").String())
 }
 
 func (v *Vigor) parseDSLStatusGeneralJSON(respJSON string) (Status, error) {
@@ -80,14 +113,47 @@ func (v *Vigor) parseDSLStatusGeneralJSON(respJSON string) (Status, error) {
 	for _, v := range streamTable {
 		switch v.Get("Name").String() {
 		case "Actual Rate":
-			status.ActualRateDownstream = parseKbps(v.Get("Downstream").String())
-			status.ActualRateUpstream = parseKbps(v.Get("Upstream").String())
+			parseStreamTableValue(&status.ActualRate, v, parseKbps)
 		case "Attainable Rate":
-			status.AttainableRateDownstream = parseKbps(v.Get("Downstream").String())
-			status.AttainableRateUpstream = parseKbps(v.Get("Upstream").String())
+			parseStreamTableValue(&status.AttainableRate, v, parseKbps)
+		case "Interleave Depth":
+			parseStreamTableValue(&status.InterleaveDepth, v, parseCount)
+		case "Actual PSD":
+			parseStreamTableValue(&status.ActualPSD, v, parsedB)
 		case "SNR Margin":
-			status.SNRMarginDownstream = parsedB(v.Get("Downstream").String())
-			status.SNRMarginUpstream = parsedB(v.Get("Upstream").String())
+			parseStreamTableValue(&status.SNRMargin, v, parsedB)
+		}
+	}
+
+	endTable := value.Get("End_Table").Array()
+	for _, v := range endTable {
+		switch v.Get("Name").String() {
+		case "Bitswap":
+			parseEndTableValue(&status.Bitswap, v, parseOption)
+		case "ReTx":
+			parseEndTableValue(&status.ReTx, v, parseOption)
+		case "Attenuation":
+			parseEndTableValue(&status.Attenuation, v, parsedB)
+		case "CRC":
+			parseEndTableValue(&status.Crc, v, parseCount)
+		case "ES":
+			parseEndTableValue(&status.Es, v, parseSeconds)
+		case "SES":
+			parseEndTableValue(&status.Ses, v, parseSeconds)
+		case "UAS":
+			parseEndTableValue(&status.Uas, v, parseSeconds)
+		case "HEC Errors":
+			parseEndTableValue(&status.HecError, v, parseCount)
+		case "LOS Failure":
+			parseEndTableValue(&status.LosFailure, v, parseCount)
+		case "LOF Failure":
+			parseEndTableValue(&status.LofFailure, v, parseCount)
+		case "LPR Failure":
+			parseEndTableValue(&status.LprFailure, v, parseCount)
+		case "LCD Failure":
+			parseEndTableValue(&status.LcdFailure, v, parseCount)
+		case "RFEC":
+			parseEndTableValue(&status.Rfec, v, parseCount)
 		}
 	}
 
@@ -112,6 +178,33 @@ func parsedB(s string) float64 {
 		return 0
 	}
 	x, err := strconv.ParseFloat(parts[0], 64)
+	if err != nil {
+		return 0
+	}
+	return x
+}
+
+func parseCount(s string) int {
+	count, err := strconv.Atoi(s)
+	if err != nil {
+		return 0
+	}
+	return count
+}
+
+func parseOption(s string) bool {
+	return s == "ON"
+}
+
+func parseSeconds(s string) int {
+	parts := strings.Fields(s)
+	if len(parts) != 2 {
+		return 0
+	}
+	if parts[1] != "s" {
+		return 0
+	}
+	x, err := strconv.Atoi(parts[0])
 	if err != nil {
 		return 0
 	}
