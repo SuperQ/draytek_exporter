@@ -33,17 +33,19 @@ func NewExporter(v *vigorv5.Vigor) *Exporter {
 	return &Exporter{v: v}
 }
 
-type metricPair struct {
+type gaugePair struct {
 	first  *prometheus.Desc
 	second *prometheus.Desc
+	values func(status vigorv5.Status) (float64, float64)
 }
 
-func (p metricPair) Describe(ch chan<- *prometheus.Desc) {
+func (p gaugePair) Describe(ch chan<- *prometheus.Desc) {
 	ch <- p.first
 	ch <- p.second
 }
 
-func (p metricPair) Collect(ch chan<- prometheus.Metric, first float64, second float64) {
+func (p gaugePair) Collect(ch chan<- prometheus.Metric, status vigorv5.Status) {
+	first, second := p.values(status)
 	ch <- prometheus.MustNewConstMetric(
 		p.first, prometheus.GaugeValue, first,
 	)
@@ -52,7 +54,7 @@ func (p metricPair) Collect(ch chan<- prometheus.Metric, first float64, second f
 	)
 }
 
-func streamTableMetricsPair(name string, helpTpl string) metricPair {
+func streamTableGaugePair(name string, helpTpl string, values func(status vigorv5.Status) (float64, float64)) gaugePair {
 	down := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "downstream", name),
 		fmt.Sprintf(helpTpl, "downstream"),
@@ -64,10 +66,24 @@ func streamTableMetricsPair(name string, helpTpl string) metricPair {
 		nil, nil,
 	)
 
-	return metricPair{down, up}
+	return gaugePair{down, up, values}
 }
 
-func endTableMetricsPair(name string, helpTpl string) metricPair {
+func streamTableFloat64GaugePair(name string, helpTpl string, values func(status vigorv5.Status) vigorv5.StreamTableValue[float64]) gaugePair {
+	return streamTableGaugePair(name, helpTpl, func(status vigorv5.Status) (float64, float64) {
+		v := values(status)
+		return v.Downstream, v.Upstream
+	})
+}
+
+func streamTableIntGaugePair(name string, helpTpl string, values func(status vigorv5.Status) vigorv5.StreamTableValue[int]) gaugePair {
+	return streamTableGaugePair(name, helpTpl, func(status vigorv5.Status) (float64, float64) {
+		v := values(status)
+		return float64(v.Downstream), float64(v.Upstream)
+	})
+}
+
+func endTableGaugePair(name string, helpTpl string, values func(status vigorv5.Status) (float64, float64)) gaugePair {
 	near := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "near_end", name),
 		fmt.Sprintf(helpTpl, "near end"),
@@ -79,7 +95,28 @@ func endTableMetricsPair(name string, helpTpl string) metricPair {
 		nil, nil,
 	)
 
-	return metricPair{near, far}
+	return gaugePair{near, far, values}
+}
+
+func endTableFloat64GaugePair(name string, helpTpl string, values func(status vigorv5.Status) vigorv5.EndTableValue[float64]) gaugePair {
+	return endTableGaugePair(name, helpTpl, func(status vigorv5.Status) (float64, float64) {
+		v := values(status)
+		return v.NearEnd, v.FarEnd
+	})
+}
+
+func endTableIntGaugePair(name string, helpTpl string, values func(status vigorv5.Status) vigorv5.EndTableValue[int]) gaugePair {
+	return endTableGaugePair(name, helpTpl, func(status vigorv5.Status) (float64, float64) {
+		v := values(status)
+		return float64(v.NearEnd), float64(v.FarEnd)
+	})
+}
+
+func endTableBoolGaugePair(name string, helpTpl string, values func(status vigorv5.Status) vigorv5.EndTableValue[bool]) gaugePair {
+	return endTableGaugePair(name, helpTpl, func(status vigorv5.Status) (float64, float64) {
+		v := values(status)
+		return boolToFloat(v.NearEnd), boolToFloat(v.FarEnd)
+	})
 }
 
 var (
@@ -94,25 +131,156 @@ var (
 		[]string{"dsl_version", "mode", "profile"}, nil,
 	)
 )
-var actualRate = streamTableMetricsPair("actual_bps", "The actual %s bits per second rate")
-var attainableRate = streamTableMetricsPair("attainable_bps", "The attainable %s bits per second rate")
-var interleaveDepth = streamTableMetricsPair("interleave_depth", "The amount of interleaving configured for the %s")
-var actualPsd = streamTableMetricsPair("actual_psd_db", "The actual %s power spectrum density in dB")
-var snrMargin = streamTableMetricsPair("snr_margin_db", "The %s SNR margin in dB")
 
-var bitswapActive = endTableMetricsPair("bitswap_active", "Whether bitswap is active on the %s")
-var reTx = endTableMetricsPair("retx_active", "Whether retransmission is active on the %s")
-var attenuation = endTableMetricsPair("attenuation_db", "The attenuation on the %s in dB")
-var crcCount = endTableMetricsPair("crc_count", "The number of CRC errors on the %s")
-var erroredSeconds = endTableMetricsPair("errored_seconds", "The number of seconds the %s was errored")
-var severelyErroredSeconds = endTableMetricsPair("severely_errored_seconds", "The number of seconds the %s was severely errored")
-var unavailableSeconds = endTableMetricsPair("unavailable_seconds", "The number of seconds the %s was unavailable")
-var hecErrorCount = endTableMetricsPair("hec_error_count", "The number of header errors on the %s")
-var losFailureCount = endTableMetricsPair("los_failure_count", "The number of Loss of Signal failures")
-var lofFailureCount = endTableMetricsPair("lof_failure_count", "The number of Loss of Frame failures")
-var lprFailureCount = endTableMetricsPair("lpr_failure_count", "The number of Loss of Power failures")
-var lcdFailureCount = endTableMetricsPair("lcd_failure_count", "The number of Loss of Cell Delineation failures")
-var rfecCount = endTableMetricsPair("rfec_count", "The number of Reed–Solomon Forward Error Corrections")
+var actualRate = streamTableIntGaugePair(
+	"actual_bps",
+	"The actual %s bits per second rate",
+	func(status vigorv5.Status) vigorv5.StreamTableValue[int] {
+		return status.ActualRate
+	},
+)
+var attainableRate = streamTableIntGaugePair(
+	"attainable_bps",
+	"The attainable %s bits per second rate",
+	func(status vigorv5.Status) vigorv5.StreamTableValue[int] {
+		return status.AttainableRate
+	},
+)
+var interleaveDepth = streamTableIntGaugePair(
+	"interleave_depth",
+	"The amount of interleaving configured for the %s",
+	func(status vigorv5.Status) vigorv5.StreamTableValue[int] {
+		return status.InterleaveDepth
+	},
+)
+var actualPsd = streamTableFloat64GaugePair(
+	"actual_psd_db",
+	"The actual %s power spectrum density in dB",
+	func(status vigorv5.Status) vigorv5.StreamTableValue[float64] {
+		return status.ActualPSD
+	},
+)
+var snrMargin = streamTableFloat64GaugePair(
+	"snr_margin_db",
+	"The %s SNR margin in dB",
+	func(status vigorv5.Status) vigorv5.StreamTableValue[float64] {
+		return status.SNRMargin
+	},
+)
+
+var bitswapActive = endTableBoolGaugePair(
+	"bitswap_active",
+	"Whether bitswap is active on the %s",
+	func(status vigorv5.Status) vigorv5.EndTableValue[bool] {
+		return status.Bitswap
+	},
+)
+var reTx = endTableBoolGaugePair(
+	"retx_active",
+	"Whether retransmission is active on the %s",
+	func(status vigorv5.Status) vigorv5.EndTableValue[bool] {
+		return status.ReTx
+	},
+)
+var attenuation = endTableFloat64GaugePair(
+	"attenuation_db",
+	"The attenuation on the %s in dB",
+	func(status vigorv5.Status) vigorv5.EndTableValue[float64] {
+		return status.Attenuation
+	},
+)
+var crcCount = endTableIntGaugePair(
+	"crc_count",
+	"The number of CRC errors on the %s",
+	func(status vigorv5.Status) vigorv5.EndTableValue[int] {
+		return status.Crc
+	},
+)
+var erroredSeconds = endTableIntGaugePair(
+	"errored_seconds",
+	"The number of seconds the %s was errored",
+	func(status vigorv5.Status) vigorv5.EndTableValue[int] {
+		return status.Es
+	},
+)
+var severelyErroredSeconds = endTableIntGaugePair(
+	"severely_errored_seconds",
+	"The number of seconds the %s was severely errored",
+	func(status vigorv5.Status) vigorv5.EndTableValue[int] {
+		return status.Ses
+	},
+)
+var unavailableSeconds = endTableIntGaugePair(
+	"unavailable_seconds",
+	"The number of seconds the %s was unavailable",
+	func(status vigorv5.Status) vigorv5.EndTableValue[int] {
+		return status.Uas
+	},
+)
+var hecErrorCount = endTableIntGaugePair(
+	"hec_error_count",
+	"The number of header errors on the %s",
+	func(status vigorv5.Status) vigorv5.EndTableValue[int] {
+		return status.HecError
+	},
+)
+var losFailureCount = endTableIntGaugePair(
+	"los_failure_count",
+	"The number of Loss of Signal failures",
+	func(status vigorv5.Status) vigorv5.EndTableValue[int] {
+		return status.LosFailure
+	},
+)
+var lofFailureCount = endTableIntGaugePair(
+	"lof_failure_count",
+	"The number of Loss of Frame failures",
+	func(status vigorv5.Status) vigorv5.EndTableValue[int] {
+		return status.LofFailure
+	},
+)
+var lprFailureCount = endTableIntGaugePair(
+	"lpr_failure_count",
+	"The number of Loss of Power failures",
+	func(status vigorv5.Status) vigorv5.EndTableValue[int] {
+		return status.LprFailure
+	},
+)
+var lcdFailureCount = endTableIntGaugePair(
+	"lcd_failure_count",
+	"The number of Loss of Cell Delineation failures",
+	func(status vigorv5.Status) vigorv5.EndTableValue[int] {
+		return status.LcdFailure
+	},
+)
+var rfecCount = endTableIntGaugePair(
+	"rfec_count",
+	"The number of Reed–Solomon Forward Error Corrections",
+	func(status vigorv5.Status) vigorv5.EndTableValue[int] {
+		return status.Rfec
+	},
+)
+
+var gauges = []gaugePair{
+	actualRate,
+	attainableRate,
+	interleaveDepth,
+	actualPsd,
+	snrMargin,
+
+	bitswapActive,
+	reTx,
+	attenuation,
+	crcCount,
+	erroredSeconds,
+	severelyErroredSeconds,
+	unavailableSeconds,
+	hecErrorCount,
+	losFailureCount,
+	lofFailureCount,
+	lprFailureCount,
+	lcdFailureCount,
+	rfecCount,
+}
 
 // Describe describes all the metrics ever exported by the draytek_exporter. It
 // implements prometheus.Collector.
@@ -120,25 +288,9 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- draytekUpDesc
 	ch <- draytekInfoDesc
 
-	actualRate.Describe(ch)
-	attainableRate.Describe(ch)
-	interleaveDepth.Describe(ch)
-	actualPsd.Describe(ch)
-	snrMargin.Describe(ch)
-
-	bitswapActive.Describe(ch)
-	reTx.Describe(ch)
-	attenuation.Describe(ch)
-	crcCount.Describe(ch)
-	erroredSeconds.Describe(ch)
-	severelyErroredSeconds.Describe(ch)
-	unavailableSeconds.Describe(ch)
-	hecErrorCount.Describe(ch)
-	losFailureCount.Describe(ch)
-	lofFailureCount.Describe(ch)
-	lprFailureCount.Describe(ch)
-	lcdFailureCount.Describe(ch)
-	rfecCount.Describe(ch)
+	for _, gauge := range gauges {
+		gauge.Describe(ch)
+	}
 }
 
 // Collect fetches the stats from the draytek router and delivers them as
@@ -160,25 +312,9 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		status.DSLVersion, status.Mode, status.Profile,
 	)
 
-	actualRate.Collect(ch, float64(status.ActualRate.Downstream), float64(status.ActualRate.Upstream))
-	attainableRate.Collect(ch, float64(status.AttainableRate.Downstream), float64(status.AttainableRate.Upstream))
-	interleaveDepth.Collect(ch, float64(status.InterleaveDepth.Downstream), float64(status.InterleaveDepth.Upstream))
-	actualPsd.Collect(ch, status.ActualPSD.Downstream, status.ActualPSD.Upstream)
-	snrMargin.Collect(ch, status.SNRMargin.Downstream, status.SNRMargin.Upstream)
-
-	bitswapActive.Collect(ch, boolToFloat(status.Bitswap.NearEnd), boolToFloat(status.Bitswap.FarEnd))
-	reTx.Collect(ch, boolToFloat(status.ReTx.NearEnd), boolToFloat(status.ReTx.FarEnd))
-	attenuation.Collect(ch, float64(status.Attenuation.NearEnd), float64(status.Attenuation.FarEnd))
-	crcCount.Collect(ch, float64(status.Crc.NearEnd), float64(status.Crc.FarEnd))
-	erroredSeconds.Collect(ch, float64(status.Es.NearEnd), float64(status.Es.FarEnd))
-	severelyErroredSeconds.Collect(ch, float64(status.Ses.NearEnd), float64(status.Ses.FarEnd))
-	unavailableSeconds.Collect(ch, float64(status.Uas.NearEnd), float64(status.Uas.FarEnd))
-	hecErrorCount.Collect(ch, float64(status.HecError.NearEnd), float64(status.HecError.FarEnd))
-	losFailureCount.Collect(ch, float64(status.LosFailure.NearEnd), float64(status.LosFailure.FarEnd))
-	lofFailureCount.Collect(ch, float64(status.LofFailure.NearEnd), float64(status.LofFailure.FarEnd))
-	lprFailureCount.Collect(ch, float64(status.LprFailure.NearEnd), float64(status.LprFailure.FarEnd))
-	lcdFailureCount.Collect(ch, float64(status.LcdFailure.NearEnd), float64(status.LcdFailure.FarEnd))
-	rfecCount.Collect(ch, float64(status.Rfec.NearEnd), float64(status.Rfec.FarEnd))
+	for _, gauge := range gauges {
+		gauge.Collect(ch, status)
+	}
 }
 
 func boolToFloat(b bool) float64 {
