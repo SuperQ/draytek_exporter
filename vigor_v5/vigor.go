@@ -1,4 +1,4 @@
-// Copyright 2018 Ben Kochie <superq@gmail.com>
+// Copyright Ben Kochie <superq@gmail.com>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -99,7 +99,7 @@ func (v *Vigor) postForm(p vigorForm) (*http.Response, error) {
 
 func (v *Vigor) postWithLogin(p vigorForm) (string, error) {
 	var rid string
-	for attempts := 0; attempts < 3; attempts++ {
+	for attempts := range 3 {
 		resp, err := v.postForm(p)
 		if err == nil && resp.StatusCode == http.StatusOK {
 			respJSON, err := decodeVigorJSON(resp)
@@ -136,7 +136,7 @@ func decodeVigorJSON(resp *http.Response) (string, error) {
 		return "", ErrJSONDecodeFailed
 	}
 	body = body[1:]
-	for i := 0; i < respPadding; i++ {
+	for range respPadding {
 		body = append(body, []byte("=")...)
 	}
 
