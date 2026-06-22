@@ -117,8 +117,8 @@ func (v *Vigor) parseDSLStatusGeneralJSON(respJSON string) (Status, error) {
 			status.AttainableRateDownstream = parseKbps(v.Get("Downstream").String())
 			status.AttainableRateUpstream = parseKbps(v.Get("Upstream").String())
 		case "Interleave Depth":
-			status.InterleaveDepthDownstream = parseKbps(v.Get("Downstream").String())
-			status.InterleaveDepthUpstream = parseKbps(v.Get("Upstream").String())
+			status.InterleaveDepthDownstream = parseCount(v.Get("Downstream").String())
+			status.InterleaveDepthUpstream = parseCount(v.Get("Upstream").String())
 		case "Actual PSD":
 			status.ActualPSDDownstream = parsedB(v.Get("Downstream").String())
 			status.ActualPSDUpstream = parsedB(v.Get("Upstream").String())
