@@ -1,3 +1,7 @@
+## 0.2.1 / 2026-06-22
+
+* [BUGFIX] Parse interleave depth with parseCount #105
+
 ## 0.2.0 / 2025-11-23
 
 Add additional DSL metrics #77
