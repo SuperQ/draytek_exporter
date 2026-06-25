@@ -53,6 +53,8 @@ jobs:
           docker_hub_organization: superque
           docker_hub_login: ${{ secrets.docker_hub_login }}
           docker_hub_password: ${{ secrets.docker_hub_password }}
+          ghcr_io_organization: superq
+          ghcr_io_login: SuperQ
           ghcr_io_password: ${{ github.token }}
           quay_io_organization: superq
           quay_io_login: ${{ secrets.quay_io_login }}
@@ -73,6 +75,8 @@ jobs:
           docker_hub_organization: superque
           docker_hub_login: ${{ secrets.docker_hub_login }}
           docker_hub_password: ${{ secrets.docker_hub_password }}
+          ghcr_io_organization: superq
+          ghcr_io_login: SuperQ
           ghcr_io_password: ${{ github.token }}
           quay_io_organization: superq
           quay_io_login: ${{ secrets.quay_io_login }}
