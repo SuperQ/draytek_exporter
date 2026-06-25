@@ -1,3 +1,7 @@
+## 0.2.2 / 2026-06-25
+
+* [BUGFIX] Fix ghcr.io publishing #107
+
 ## 0.2.1 / 2026-06-22
 
 * [BUGFIX] Parse interleave depth with parseCount #105
