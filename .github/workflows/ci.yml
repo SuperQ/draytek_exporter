@@ -32,7 +32,7 @@ jobs:
       matrix:
         thread: [ 0, 1, 2, 3]
     steps:
-      - uses: prometheus/promci/build@9c0e5048a10565e63cbf7c94527ba81ce9be0bea # v0.8.4
+      - uses: prometheus/promci/build@13941414d409d227afd67544e5d306827db5a1a2 # v0.8.5
         with:
           parallelism: 4
           thread: ${{ matrix.thread }}
